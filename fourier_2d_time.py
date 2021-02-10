@@ -352,4 +352,109 @@ def train(
 
 
 
+def forward_time(
+
+    ntrain = 1000,
+    ntest = 1,
+
+    modes = 12,
+    width = 20,
+
+    batch_size = 20,
+
+    epochs = 500,
+    learning_rate = 0.0025,
+    scheduler_step = 100,
+    scheduler_gamma = 0.5,
+
+
+    path=None,
+
+    runtime = np.zeros(2, ),
+    t1 = default_timer(),
+
+    sub = 1,
+    S = 64,
+    T_in = 1,
+    T = 10,
+    step = 1,
+):
+    if S == 16:
+        modes = 9
+    elif S == 8:
+        modes = 5
+    batch_size2 = batch_size,
+    print(locals())
+    if path is None:
+        path = 'ns_fourier_2d_rnn_V10000_T20_N'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
+    path_model = 'model/'+path,
+    path_train_err = 'results/'+path+'train.txt',
+    path_test_err = 'results/'+path+'test.txt',
+    path_image = 'image/'+path,
+    print(epochs, learning_rate, scheduler_step, scheduler_gamma)
+    ################################################################
+    # load data
+    ################################################################
+
+    train_a = torch.rand(ntrain, S, S, T_in)
+    train_u = torch.rand(ntrain, S, S, T)
+    test_a = torch.rand(ntest, S, S, T_in)
+    test_u = torch.rand(ntest, S, S, T)
+
+    print(train_u.shape)
+    print(test_u.shape)
+    assert (S == train_u.shape[-2])
+    assert (T == train_u.shape[-1])
+
+    train_a = train_a.reshape(ntrain,S,S,T_in)
+    test_a = test_a.reshape(ntest,S,S,T_in)
+
+    # pad the location (x,y)
+    gridx = torch.tensor(np.linspace(0, 1, S), dtype=torch.float)
+    gridx = gridx.reshape(1, S, 1, 1).repeat([1, 1, S, 1])
+    gridy = torch.tensor(np.linspace(0, 1, S), dtype=torch.float)
+    gridy = gridy.reshape(1, 1, S, 1).repeat([1, S, 1, 1])
+
+    train_a = torch.cat((gridx.repeat([ntrain,1,1,1]), gridy.repeat([ntrain,1,1,1]), train_a), dim=-1)
+    test_a = torch.cat((gridx.repeat([ntest,1,1,1]), gridy.repeat([ntest,1,1,1]), test_a), dim=-1)
+
+    train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(train_a, train_u), batch_size=batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(test_a, test_u), batch_size=batch_size, shuffle=False)
+
+    t2 = default_timer()
+
+    print('preprocessing finished, time used:', t2-t1)
+    device = torch.device('cuda')
+
+    ################################################################
+    # training and evaluation
+    ################################################################
+
+    model = Net2d(modes, width).cuda()
+    # model = torch.load('model/ns_fourier_V100_N1000_ep100_m8_w20')
+
+    print(model.count_params())
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step, gamma=scheduler_gamma)
+
+
+    myloss = LpLoss(size_average=False)
+    gridx = gridx.to(device)
+    gridy = gridy.to(device)
+
+    pred = torch.zeros(test_u.shape)
+    index = 0
+    test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(test_a, test_u), batch_size=1, shuffle=False)
+    with torch.no_grad():
+        i in range(20):
+            t1 = default_timer(),
+            out = model(test_a)
+            times.append(default_timer() - t1)
+    print(f'eval took on average {sum(times) / len(times)} s')
+   
+
+
+
+
+
 
