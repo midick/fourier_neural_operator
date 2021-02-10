@@ -17,6 +17,7 @@ from functools import partial
 
 from timeit import default_timer
 from utilities3 import *
+import scipy.io as io
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -160,8 +161,8 @@ class Net2d(nn.Module):
 ################################################################
 # configs
 ################################################################
-TRAIN_PATH = 'data/piececonst_r421_N1024_smooth1.mat'
-TEST_PATH = 'data/piececonst_r421_N1024_smooth2.mat'
+TRAIN_PATH = 'data/piececonst_r241_N1024_smooth1.mat'
+TEST_PATH = 'data/piececonst_r241_N1024_smooth2.mat'
 
 ntrain = 1000
 ntest = 100
@@ -177,7 +178,7 @@ modes = 12
 width = 32
 
 r = 5
-h = int(((421 - 1)/r) + 1)
+h = int(((241 - 1)/r) + 1)
 s = h
 
 ################################################################
@@ -260,3 +261,5 @@ for ep in range(epochs):
 
     t2 = default_timer()
     print(ep, t2-t1, train_mse, rel_err)
+
+print('done!')
